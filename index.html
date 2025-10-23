@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rastrea tu envío - Maura Multiservices</title>
+  <style>
+    :root { --azul:#0033A0; --rojo:#E10600; --blanco:#fff; --gris:#f5f5f5; }
+    body { font-family: Arial, Helvetica, sans-serif; background:var(--gris); margin:0; }
+    header, footer { background:var(--azul); color:var(--blanco); text-align:center; padding:16px; }
+    .container { max-width:640px; margin:32px auto; background:#fff; padding:20px; border-radius:12px;
+                 box-shadow:0 6px 18px rgba(0,0,0,.08); }
+    .row { display:flex; gap:0; justify-content:center; }
+    input { width:70%; padding:10px; font-size:16px; border:1px solid #ccc; border-radius:8px 0 0 8px; }
+    button { padding:10px 16px; font-size:16px; border:0; color:#fff; background:var(--rojo);
+              border-radius:0 8px 8px 0; cursor:pointer; }
+    button:hover { filter:brightness(.95); }
+    .card { margin-top:18px; background:#fafafa; border:1px solid #e6e6e6; border-radius:10px; padding:14px; }
+    .estado { color:var(--rojo); font-weight:700; margin:8px 0; }
+    .hist { border-left:4px solid var(--azul); padding-left:10px; margin:6px 0; }
+    @media (max-width:600px) { .row { flex-direction:column; } input,button { width:100%; border-radius:8px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rastrea tu envío 📦</h1>
+  </header>
+
+  <main class="container">
+    <div class="row">
+      <input id="tn" placeholder="Ej: MIR123456789" aria-label="Número de guía" autocomplete="off">
+      <button id="buscar" aria-label="Buscar">Buscar</button>
+    </div>
+    <div id="resultado"></div>
+  </main>
+
+  <footer>
+    © 2025 Maura Multiservices · Miami — Nicaragua
+  </footer>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwAFqUZCbnrH1whb-PzwsrNdJcG2Jy8fOeAI-Y7dFLIMExart_0Ohz454S4Pi_-cyRgTw/exec";
+
+    const $ = (id) => document.getElementById(id);
+    $('buscar').addEventListener('click', buscar);
+    $('tn').addEventListener('keypress', e => { if (e.key === 'Enter') buscar(); });
+
+    async function buscar() {
+      const tn = $('tn').value.trim();
+      const out = $('resultado');
+      if (!tn) { out.innerHTML = '<div class="card">⚠️ Ingrese un número de guía</div>'; return; }
+      out.innerHTML = '⏳ Buscando...';
+      try {
+        const res = await fetch(`${API_URL}?tracking=${encodeURIComponent(tn)}`);
+        const data = await res.json();
+        if (data.error) { out.innerHTML = `<div class="card">⚠️ ${data.error}</div>`; return; }
+        const hist = (data.historial || '').split('→').filter(Boolean)
+          .map(i => `<div class="hist">→ ${i.trim()}</div>`).join('') || '<div class="hist">Sin historial registrado</div>';
+        out.innerHTML = `
+          <div class="card">
+            <div><b>📄 Guía:</b> ${data.tracking_number || tn}</div>
+            <div><b>👤 Remitente:</b> ${data.remitente || '-'}</div>
+            <div><b>📬 Destinatario:</b> ${data.destinatario || '-'}</div>
+            <div><b>🏙️ Origen:</b> ${data.origen || '-'}</div>
+            <div><b>🌍 Destino:</b> ${data.destino || '-'}</div>
+            <div class="estado">🚚 ${data.estado_actual || '—'}</div>
+            <hr>
+            <b>📜 Historial</b>
+            ${hist}
+          </div>`;
+      } catch (e) {
+        out.innerHTML = '<div class="card">❌ Error al conectar con el servidor</div>';
+      }
+    }
+  </script>
+</body>
+</html>
