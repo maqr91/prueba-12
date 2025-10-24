@@ -1,77 +1,194 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rastrea tu envío - Maura Multiservices</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rastreo | MIR</title>
+
   <style>
-    :root { --azul:#0033A0; --rojo:#E10600; --blanco:#fff; --gris:#f5f5f5; }
-    body { font-family: Arial, Helvetica, sans-serif; background:var(--gris); margin:0; }
-    header, footer { background:var(--azul); color:var(--blanco); text-align:center; padding:16px; }
-    .container { max-width:640px; margin:32px auto; background:#fff; padding:20px; border-radius:12px;
-                 box-shadow:0 6px 18px rgba(0,0,0,.08); }
-    .row { display:flex; gap:0; justify-content:center; }
-    input { width:70%; padding:10px; font-size:16px; border:1px solid #ccc; border-radius:8px 0 0 8px; }
-    button { padding:10px 16px; font-size:16px; border:0; color:#fff; background:var(--rojo);
-              border-radius:0 8px 8px 0; cursor:pointer; }
-    button:hover { filter:brightness(.95); }
-    .card { margin-top:18px; background:#fafafa; border:1px solid #e6e6e6; border-radius:10px; padding:14px; }
-    .estado { color:var(--rojo); font-weight:700; margin:8px 0; }
-    .hist { border-left:4px solid var(--azul); padding-left:10px; margin:6px 0; }
-    @media (max-width:600px) { .row { flex-direction:column; } input,button { width:100%; border-radius:8px; } }
+    :root{
+      --azul:#1e3a8a;
+      --gris:#f1f5f9;
+      --gris2:#e2e8f0;
+      --texto:#0f172a;
+      --amarillo:#fbbf24;
+      --blanco:#ffffff;
+    }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--texto); background:var(--gris); }
+    header{ background:var(--azul); color:var(--blanco); padding:18px; }
+    header h1{ margin:0; font-size:20px; }
+    .container{ max-width:1100px; margin:20px auto; padding:0 16px; }
+    .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow: 0 4px 16px rgba(2,6,23,0.06); overflow:hidden; }
+    .card-header{ padding:16px; border-bottom:1px solid var(--gris2); display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .input{ flex:1 1 260px; display:flex; align-items:center; gap:8px; border:1px solid var(--gris2); border-radius:10px; padding:10px 12px; background:var(--blanco); }
+    .input input{ width:100%; border:none; outline:none; font-size:14px; }
+    .btn{ appearance:none; border:none; background:var(--amarillo); color:#111827; padding:10px 14px; font-weight:600; border-radius:10px; cursor:pointer; }
+    .meta{ font-size:12px; color:#475569; margin-left:auto; }
+    .status{ padding:14px 16px; font-size:14px; color:#334155; }
+    table{ width:100%; border-collapse:collapse; }
+    thead{ background:#f8fafc; position:sticky; top:0; z-index:1; }
+    th, td{ padding:10px 12px; border-bottom:1px solid var(--gris2); text-align:left; font-size:14px; }
+    tbody tr:hover{ background:#f9fafb; }
+    .table-wrap{ overflow:auto; max-height:70vh; }
+    .empty{ padding:28px; text-align:center; color:#64748b; }
+    footer{ text-align:center; font-size:12px; color:#64748b; padding:28px 0; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>Rastrea tu envío 📦</h1>
+    <h1>MIR | Rastreo de Envíos</h1>
   </header>
 
   <main class="container">
-    <div class="row">
-      <input id="tn" placeholder="Ej: MIR123456789" aria-label="Número de guía" autocomplete="off">
-      <button id="buscar" aria-label="Buscar">Buscar</button>
-    </div>
-    <div id="resultado"></div>
+    <section class="card">
+      <div class="card-header">
+        <!-- Buscador general -->
+        <div class="input">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.3-4.3m1.8-4.2a7 7 0 11-14 0 7 7 0 0114 0z" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search" placeholder="Buscar (nombre, ciudad, etc.)" />
+        </div>
+
+        <!-- Buscador exacto -->
+        <div class="row">
+          <div class="input" style="flex:1 1 200px;">
+            <input id="exactSearch" placeholder="Código exacto de rastreo" />
+          </div>
+          <button id="exactBtn" class="btn">Buscar</button>
+        </div>
+
+        <button id="reloadBtn" class="btn">Actualizar</button>
+        <div id="meta" class="meta"></div>
+      </div>
+
+      <div id="status" class="status">Cargando datos…</div>
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table id="dataTable">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty" class="empty" style="display:none;">Sin resultados para tu búsqueda.</div>
+      </div>
+    </section>
+
+    <footer>
+      Conectado a Google Sheets. Si no ves datos, verifica permisos de publicación.
+    </footer>
   </main>
 
-  <footer>
-    © 2025 Maura Multiservices · Miami — Nicaragua
-  </footer>
-
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwAFqUZCbnrH1whb-PzwsrNdJcG2Jy8fOeAI-Y7dFLIMExart_0Ohz454S4Pi_-cyRgTw/exec";
-
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKS7bgz66MT4L_jt8-I1cxgkJaJYwRgYRkQS2IBNvG0O8MJOETF2HBeTEd0VQE4Lu7GsTQBMeahzFB/pub?output=csv';
     const $ = (id) => document.getElementById(id);
-    $('buscar').addEventListener('click', buscar);
-    $('tn').addEventListener('keypress', e => { if (e.key === 'Enter') buscar(); });
+    const statusEl = $('status'), theadEl = $('thead'), tbodyEl = $('tbody'), tableWrapEl = $('tableWrap');
+    const searchEl = $('search'), metaEl = $('meta'), emptyEl = $('empty');
+    const reloadBtn = $('reloadBtn'), exactBtn = $('exactBtn'), exactSearchEl = $('exactSearch');
 
-    async function buscar() {
-      const tn = $('tn').value.trim();
-      const out = $('resultado');
-      if (!tn) { out.innerHTML = '<div class="card">⚠️ Ingrese un número de guía</div>'; return; }
-      out.innerHTML = '⏳ Buscando...';
-      try {
-        const res = await fetch(`${API_URL}?tracking=${encodeURIComponent(tn)}`);
-        const data = await res.json();
-        if (data.error) { out.innerHTML = `<div class="card">⚠️ ${data.error}</div>`; return; }
-        const hist = (data.historial || '').split('→').filter(Boolean)
-          .map(i => `<div class="hist">→ ${i.trim()}</div>`).join('') || '<div class="hist">Sin historial registrado</div>';
-        out.innerHTML = `
-          <div class="card">
-            <div><b>📄 Guía:</b> ${data.tracking_number || tn}</div>
-            <div><b>👤 Remitente:</b> ${data.remitente || '-'}</div>
-            <div><b>📬 Destinatario:</b> ${data.destinatario || '-'}</div>
-            <div><b>🏙️ Origen:</b> ${data.origen || '-'}</div>
-            <div><b>🌍 Destino:</b> ${data.destino || '-'}</div>
-            <div class="estado">🚚 ${data.estado_actual || '—'}</div>
-            <hr>
-            <b>📜 Historial</b>
-            ${hist}
-          </div>`;
-      } catch (e) {
-        out.innerHTML = '<div class="card">❌ Error al conectar con el servidor</div>';
-      }
+    let rows = [];
+    let headers = [];
+    let filtered = [];
+
+    function setStatus(msg, ok=false){
+      statusEl.textContent = msg;
+      statusEl.style.display = msg ? 'block' : 'none';
+      statusEl.style.color = ok ? '#166534' : '#334155';
     }
+
+    function renderTable(data){
+      theadEl.innerHTML = '';
+      tbodyEl.innerHTML = '';
+      if (!data || !data.length){
+        tableWrapEl.style.display = 'block';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+
+      const trHead = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        trHead.appendChild(th);
+      });
+      theadEl.appendChild(trHead);
+
+      const frag = document.createDocumentFragment();
+      data.forEach(r => {
+        const tr = document.createElement('tr');
+        headers.forEach(h => {
+          const td = document.createElement('td');
+          td.textContent = r[h] ?? '';
+          tr.appendChild(td);
+        });
+        frag.appendChild(tr);
+      });
+      tbodyEl.appendChild(frag);
+
+      tableWrapEl.style.display = 'block';
+      metaEl.textContent = `Mostrando ${data.length} de ${rows.length} registros`;
+    }
+
+    function doFilter(){
+      const q = searchEl.value.trim().toLowerCase();
+      if (!q){
+        filtered = rows.slice();
+      } else {
+        filtered = rows.filter(r =>
+          headers.some(h => String(r[h] ?? '').toLowerCase().includes(q))
+        );
+      }
+      renderTable(filtered);
+      if (!filtered.length) emptyEl.style.display = 'block';
+    }
+
+    function doExactSearch(){
+      const code = exactSearchEl.value.trim().toLowerCase();
+      if (!code){
+        renderTable(rows);
+        return;
+      }
+      const result = rows.filter(r =>
+        headers.some(h => String(r[h] ?? '').toLowerCase() === code)
+      );
+      renderTable(result);
+      if (!result.length) emptyEl.style.display = 'block';
+    }
+
+    let t = null;
+    searchEl.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(doFilter, 200);
+    });
+    exactBtn.addEventListener('click', doExactSearch);
+    reloadBtn.addEventListener('click', () => loadData(true));
+
+    function loadData(bustCache=false){
+      setStatus('Cargando datos…');
+      tableWrapEl.style.display = 'none';
+      emptyEl.style.display = 'none';
+      metaEl.textContent = '';
+
+      const url = bustCache ? `${SHEET_CSV_URL}&t=${Date.now()}` : SHEET_CSV_URL;
+      Papa.parse(url, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          rows = res.data || [];
+          headers = res.meta?.fields || (rows[0] ? Object.keys(rows[0]) : []);
+          filtered = rows.slice();
+          renderTable(filtered);
+          setStatus('Datos cargados ✅', true);
+        },
+        error: (err) => {
+          console.error(err);
+          setStatus('Error al cargar la hoja. Verifica que esté publicada como CSV.');
+        }
+      });
+    }
+
+    loadData(false);
   </script>
 </body>
 </html>
