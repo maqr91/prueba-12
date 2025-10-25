@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rastreo | MIR</title>
+  <link rel="icon" href="mir-logo.png" />
 
   <style>
     :root{
@@ -15,8 +16,18 @@
       --blanco:#ffffff;
     }
     body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--texto); background:var(--gris); }
-    header{ background:var(--azul); color:var(--blanco); padding:18px; }
-    header h1{ margin:0; font-size:20px; }
+
+    /* Header con logo */
+    header{ background:var(--azul); color:var(--blanco); padding:12px 18px; }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand img{ height:40px; width:auto; display:block; }
+    .brand h1{ margin:0; font-size:20px; line-height:1.1; }
+    @media (max-width:480px){
+      .brand img{ height:34px; }
+      .brand h1{ font-size:18px; }
+    }
+
+    /* Layout tarjeta */
     .container{ max-width:1100px; margin:20px auto; padding:0 16px; }
     .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow: 0 4px 16px rgba(2,6,23,0.06); overflow:hidden; }
     .card-header{ padding:16px; border-bottom:1px solid var(--gris2); display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
@@ -24,6 +35,7 @@
     .input input{ width:100%; border:none; outline:none; font-size:14px; }
     .btn{ appearance:none; border:none; background:var(--amarillo); color:#111827; padding:10px 14px; font-weight:600; border-radius:10px; cursor:pointer; }
     .btn:hover{ background:#facc15; }
+
     .status{ padding:14px 16px; font-size:14px; color:#334155; }
     table{ width:100%; border-collapse:collapse; }
     thead{ background:#f8fafc; position:sticky; top:0; z-index:1; }
@@ -37,8 +49,12 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
+  <!-- HEADER con logo -->
   <header>
-    <h1>MIR | Rastreo de Envíos</h1>
+    <div class="brand">
+      <img src="mir-logo.png" alt="MIR - Maura Multiservices" />
+      <h1>MIR | Rastreo de Envíos</h1>
+    </div>
   </header>
 
   <main class="container">
@@ -51,6 +67,7 @@
       </div>
 
       <div id="status" class="status"></div>
+
       <div class="table-wrap" id="tableWrap" style="display:none;">
         <table>
           <thead id="thead"></thead>
@@ -62,7 +79,10 @@
   </main>
 
   <script>
+    // CSV publicado de tu Google Sheets (forma CSV pública)
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKS7bgz66MT4L_jt8-I1cxgkJaJYwRgYRkQS2IBNvG0O8MJOETF2HBeTEd0VQE4Lu7GsTQBMeahzFB/pub?output=csv';
+
+    // Helpers
     const $ = (id) => document.getElementById(id);
     const exactBtn = $('exactBtn');
     const exactSearchEl = $('exactSearch');
@@ -71,7 +91,6 @@
     const tableWrapEl = $('tableWrap');
     const emptyEl = $('empty');
     const statusEl = $('status');
-
     let headers = [];
 
     function setStatus(msg, ok=false){
@@ -89,7 +108,6 @@
         emptyEl.style.display = 'block';
         return;
       }
-
       emptyEl.style.display = 'none';
 
       // Header
@@ -101,7 +119,7 @@
       });
       theadEl.appendChild(trHead);
 
-      // Body
+      // Body (solo 1 fila)
       const tr = document.createElement('tr');
       headers.forEach(h => {
         const td = document.createElement('td');
@@ -136,13 +154,13 @@
           renderTable(result);
           setStatus(result.length ? '✅ Resultado encontrado' : '❌ No se encontró información', !!result.length);
         },
-        error: (err) => {
-          console.error(err);
+        error: () => {
           setStatus('Error al cargar la hoja.');
         }
       });
     }
 
+    // Eventos
     exactBtn.addEventListener('click', searchTracking);
     exactSearchEl.addEventListener('keydown', (e) => { if(e.key==='Enter') searchTracking(); });
   </script>
