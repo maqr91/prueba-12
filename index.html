@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rastreo | MIR</title>
-  <link rel="icon" href="mir-logo.png" />
+  <!-- Favicon desde /public -->
+  <link rel="icon" href="/mir-logo.png" />
 
   <style>
     :root{
@@ -15,7 +16,7 @@
       --amarillo:#fbbf24;
       --blanco:#ffffff;
     }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--texto); background:var(--gris); }
+    body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--texto); background:var(--gris); }
 
     /* Header con logo */
     header{ background:var(--azul); color:var(--blanco); padding:12px 18px; }
@@ -29,7 +30,7 @@
 
     /* Layout tarjeta */
     .container{ max-width:1100px; margin:20px auto; padding:0 16px; }
-    .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow: 0 4px 16px rgba(2,6,23,0.06); overflow:hidden; }
+    .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow:0 4px 16px rgba(2,6,23,.06); overflow:hidden; }
     .card-header{ padding:16px; border-bottom:1px solid var(--gris2); display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     .input{ flex:1 1 260px; display:flex; align-items:center; gap:8px; border:1px solid var(--gris2); border-radius:10px; padding:10px 12px; background:var(--blanco); }
     .input input{ width:100%; border:none; outline:none; font-size:14px; }
@@ -43,16 +44,15 @@
     tbody tr:hover{ background:#f9fafb; }
     .table-wrap{ overflow:auto; max-height:70vh; }
     .empty{ padding:28px; text-align:center; color:#64748b; }
-    footer{ text-align:center; font-size:12px; color:#64748b; padding:28px 0; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
-  <!-- HEADER con logo -->
+  <!-- HEADER con logo desde /public -->
   <header>
     <div class="brand">
-      <img src="mir-logo.png" alt="MIR - Maura Multiservices" />
+      <img src="/mir-logo.png" alt="MIR - Maura Multiservices" />
       <h1>MIR | Rastreo de Envíos</h1>
     </div>
   </header>
@@ -79,7 +79,7 @@
   </main>
 
   <script>
-    // CSV publicado de tu Google Sheets (forma CSV pública)
+    // CSV público de tu Google Sheets
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKS7bgz66MT4L_jt8-I1cxgkJaJYwRgYRkQS2IBNvG0O8MJOETF2HBeTEd0VQE4Lu7GsTQBMeahzFB/pub?output=csv';
 
     // Helpers
