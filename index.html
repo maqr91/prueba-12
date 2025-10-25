@@ -28,7 +28,6 @@
     table{ width:100%; border-collapse:collapse; }
     thead{ background:#f8fafc; position:sticky; top:0; z-index:1; }
     th, td{ padding:10px 12px; border-bottom:1px solid var(--gris2); text-align:left; font-size:14px; }
-    tbody tr:hover{ background:#f9fafb; }
     .table-wrap{ overflow:auto; max-height:70vh; }
     .empty{ padding:28px; text-align:center; color:#64748b; }
     footer{ text-align:center; font-size:12px; color:#64748b; padding:28px 0; }
@@ -45,21 +44,15 @@
   <main class="container">
     <section class="card">
       <div class="card-header">
-        <!-- Buscador general -->
-        <div class="input">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.3-4.3m1.8-4.2a7 7 0 11-14 0 7 7 0 0114 0z" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg>
-          <input id="search" placeholder="Buscar (nombre, ciudad, etc.)" />
-        </div>
-
-        <!-- Buscador exacto -->
-        <div class="row">
-          <div class="input" style="flex:1 1 200px;">
-            <input id="exactSearch" placeholder="Código exacto de rastreo" />
+        <!-- 🔎 SOLO búsqueda por código exacto -->
+        <div class="row" style="flex:1 1 auto;">
+          <div class="input" style="flex:1 1 260px;">
+            <input id="exactSearch" placeholder="Número de rastreo (exacto)" />
           </div>
           <button id="exactBtn" class="btn">Buscar</button>
         </div>
 
-        <button id="reloadBtn" class="btn">Actualizar</button>
+        <button id="reloadBtn" class="btn">Actualizar datos</button>
         <div id="meta" class="meta"></div>
       </div>
 
@@ -69,25 +62,26 @@
           <thead id="thead"></thead>
           <tbody id="tbody"></tbody>
         </table>
-        <div id="empty" class="empty" style="display:none;">Sin resultados para tu búsqueda.</div>
+        <div id="empty" class="empty" style="display:none;">Sin resultados para ese número.</div>
       </div>
     </section>
 
     <footer>
-      Conectado a Google Sheets. Si no ves datos, verifica permisos de publicación.
+      Conectado a Google Sheets (CSV publicado). Si no ves datos, verifica permisos de publicación.
     </footer>
   </main>
 
   <script>
+    // 👉 CSV publicado de tu Google Sheets
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKS7bgz66MT4L_jt8-I1cxgkJaJYwRgYRkQS2IBNvG0O8MJOETF2HBeTEd0VQE4Lu7GsTQBMeahzFB/pub?output=csv';
+
     const $ = (id) => document.getElementById(id);
     const statusEl = $('status'), theadEl = $('thead'), tbodyEl = $('tbody'), tableWrapEl = $('tableWrap');
-    const searchEl = $('search'), metaEl = $('meta'), emptyEl = $('empty');
+    const metaEl = $('meta'), emptyEl = $('empty');
     const reloadBtn = $('reloadBtn'), exactBtn = $('exactBtn'), exactSearchEl = $('exactSearch');
 
     let rows = [];
     let headers = [];
-    let filtered = [];
 
     function setStatus(msg, ok=false){
       statusEl.textContent = msg;
@@ -98,13 +92,17 @@
     function renderTable(data){
       theadEl.innerHTML = '';
       tbodyEl.innerHTML = '';
+
       if (!data || !data.length){
-        tableWrapEl.style.display = 'block';
+        tableWrapEl.style.display = 'none';
         emptyEl.style.display = 'block';
+        metaEl.textContent = '';
         return;
       }
+
       emptyEl.style.display = 'none';
 
+      // Cabecera fija (usa las columnas originales de la hoja)
       const trHead = document.createElement('tr');
       headers.forEach(h => {
         const th = document.createElement('th');
@@ -113,6 +111,7 @@
       });
       theadEl.appendChild(trHead);
 
+      // Solo una o pocas filas (resultado de búsqueda)
       const frag = document.createDocumentFragment();
       data.forEach(r => {
         const tr = document.createElement('tr');
@@ -126,41 +125,35 @@
       tbodyEl.appendChild(frag);
 
       tableWrapEl.style.display = 'block';
-      metaEl.textContent = `Mostrando ${data.length} de ${rows.length} registros`;
-    }
-
-    function doFilter(){
-      const q = searchEl.value.trim().toLowerCase();
-      if (!q){
-        filtered = rows.slice();
-      } else {
-        filtered = rows.filter(r =>
-          headers.some(h => String(r[h] ?? '').toLowerCase().includes(q))
-        );
-      }
-      renderTable(filtered);
-      if (!filtered.length) emptyEl.style.display = 'block';
+      metaEl.textContent = `Mostrando ${data.length} resultado${data.length>1?'s':''}`;
     }
 
     function doExactSearch(){
       const code = exactSearchEl.value.trim().toLowerCase();
+      // Si el campo está vacío: no mostramos nada
       if (!code){
-        renderTable(rows);
+        tbodyEl.innerHTML = '';
+        tableWrapEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        metaEl.textContent = '';
         return;
       }
+
+      // Coincidencia exacta en cualquier columna (por si tu columna no se llama exactamente "tracking")
       const result = rows.filter(r =>
         headers.some(h => String(r[h] ?? '').toLowerCase() === code)
       );
+
       renderTable(result);
-      if (!result.length) emptyEl.style.display = 'block';
+
+      if (!result.length) {
+        emptyEl.style.display = 'block';
+        metaEl.textContent = 'Sin coincidencias para ese número.';
+      }
     }
 
-    let t = null;
-    searchEl.addEventListener('input', () => {
-      clearTimeout(t);
-      t = setTimeout(doFilter, 200);
-    });
     exactBtn.addEventListener('click', doExactSearch);
+    exactSearchEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') doExactSearch(); });
     reloadBtn.addEventListener('click', () => loadData(true));
 
     function loadData(bustCache=false){
@@ -177,9 +170,8 @@
         complete: (res) => {
           rows = res.data || [];
           headers = res.meta?.fields || (rows[0] ? Object.keys(rows[0]) : []);
-          filtered = rows.slice();
-          renderTable(filtered);
-          setStatus('Datos cargados ✅', true);
+          setStatus('Datos listos. Ingresa un número de rastreo para buscar ✅', true);
+          // 👇 Ya no renderizamos toda la tabla aquí — solo al buscar exacto
         },
         error: (err) => {
           console.error(err);
@@ -188,6 +180,7 @@
       });
     }
 
+    // Carga inicial (sin mostrar tabla)
     loadData(false);
   </script>
 </body>
