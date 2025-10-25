@@ -16,6 +16,8 @@
     }
     body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--texto); background:var(--gris); }
     header{ background:var(--azul); color:var(--blanco); padding:18px; }
+    header .wrap{ max-width:1100px; margin:0 auto; padding:0 16px; display:flex; align-items:center; gap:14px; }
+    header img{ height:40px; width:auto; display:block; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(0,0,0,.1)); }
     header h1{ margin:0; font-size:20px; }
     .container{ max-width:1100px; margin:20px auto; padding:0 16px; }
     .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow: 0 4px 16px rgba(2,6,23,0.06); overflow:hidden; }
@@ -27,18 +29,23 @@
     .status{ padding:14px 16px; font-size:14px; color:#334155; }
     table{ width:100%; border-collapse:collapse; }
     thead{ background:#f8fafc; position:sticky; top:0; z-index:1; }
-    th, td{ padding:10px 12px; border-bottom:1px solid var(--gris2); text-align:left; font-size:14px; }
+    th, td{ padding:10px 12px; border-bottom:1px solid var(--gris2); text-align:left; font-size:14px; vertical-align:top; }
     .table-wrap{ overflow:auto; max-height:70vh; }
     .empty{ padding:28px; text-align:center; color:#64748b; }
     footer{ text-align:center; font-size:12px; color:#64748b; padding:28px 0; }
     .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    img.preview { max-width: 100px; border-radius: 8px; display:block; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>MIR | Rastreo de Envíos</h1>
+    <div class="wrap">
+      <!-- LOGO (puedes subirlo al repo y cambiar la ruta de abajo por ./logo.png) -->
+      <img src="https://via.placeholder.com/150x50?text=MIR+Logo" alt="MIR Logo">
+      <h1>MIR | Rastreo de Envíos</h1>
+    </div>
   </header>
 
   <main class="container">
@@ -67,7 +74,8 @@
     </section>
 
     <footer>
-      Conectado a Google Sheets (CSV publicado). Si no ves datos, verifica permisos de publicación.
+      Conectado a Google Sheets (CSV publicado). Si no ves datos, verifica permisos de publicación.<br>
+      📸 Para mostrar imágenes: coloca el link directo en la celda de la hoja.
     </footer>
   </main>
 
@@ -102,7 +110,7 @@
 
       emptyEl.style.display = 'none';
 
-      // Cabecera fija (usa las columnas originales de la hoja)
+      // 🧭 Encabezados
       const trHead = document.createElement('tr');
       headers.forEach(h => {
         const th = document.createElement('th');
@@ -111,13 +119,29 @@
       });
       theadEl.appendChild(trHead);
 
-      // Solo una o pocas filas (resultado de búsqueda)
+      // 🖼️ Filas
       const frag = document.createDocumentFragment();
       data.forEach(r => {
         const tr = document.createElement('tr');
         headers.forEach(h => {
           const td = document.createElement('td');
-          td.textContent = r[h] ?? '';
+          const cellValue = r[h] ?? '';
+
+          // 🖼️ Detectar si la celda contiene un link de imagen
+          if (typeof cellValue === 'string' && cellValue.startsWith('http') && (
+              cellValue.endsWith('.jpg') || cellValue.endsWith('.jpeg') || 
+              cellValue.endsWith('.png') || cellValue.includes('drive.google.com') || 
+              cellValue.includes('dropbox.com')
+            )) {
+            const img = document.createElement('img');
+            img.src = cellValue;
+            img.alt = 'Foto';
+            img.className = 'preview';
+            td.appendChild(img);
+          } else {
+            td.textContent = cellValue;
+          }
+
           tr.appendChild(td);
         });
         frag.appendChild(tr);
@@ -130,7 +154,6 @@
 
     function doExactSearch(){
       const code = exactSearchEl.value.trim().toLowerCase();
-      // Si el campo está vacío: no mostramos nada
       if (!code){
         tbodyEl.innerHTML = '';
         tableWrapEl.style.display = 'none';
@@ -139,7 +162,6 @@
         return;
       }
 
-      // Coincidencia exacta en cualquier columna (por si tu columna no se llama exactamente "tracking")
       const result = rows.filter(r =>
         headers.some(h => String(r[h] ?? '').toLowerCase() === code)
       );
@@ -170,8 +192,7 @@
         complete: (res) => {
           rows = res.data || [];
           headers = res.meta?.fields || (rows[0] ? Object.keys(rows[0]) : []);
-          setStatus('Datos listos. Ingresa un número de rastreo para buscar ✅', true);
-          // 👇 Ya no renderizamos toda la tabla aquí — solo al buscar exacto
+          setStatus('Datos listos ✅ Ingresa un número de rastreo para buscar', true);
         },
         error: (err) => {
           console.error(err);
@@ -180,7 +201,7 @@
       });
     }
 
-    // Carga inicial (sin mostrar tabla)
+    // Carga inicial
     loadData(false);
   </script>
 </body>
