@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rastreo | MIR</title>
+
+  <!-- ✅ Favicon (usa el logo que subiste a /public) -->
+  <link rel="icon" href="/mir-logo.png" />
+
+  <style>
+    :root{
+      --azul:#1e3a8a;
+      --gris:#f1f5f9;
+      --gris2:#e2e8f0;
+      --texto:#0f172a;
+      --amarillo:#fbbf24;
+      --blanco:#ffffff;
+    }
+    body{ 
+      margin:0; 
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; 
+      color:var(--texto); 
+      background:var(--gris); 
+    }
+
+    /* Header con logo */
+    header{ 
+      background:var(--azul); 
+      color:var(--blanco); 
+      padding:12px 18px; 
+    }
+    .brand{ 
+      display:flex; 
+      align-items:center; 
+      gap:12px; 
+    }
+    .brand img{ 
+      height:40px; 
+      width:auto; 
+      display:block; 
+    }
+    .brand h1{ 
+      margin:0; 
+      font-size:20px; 
+      line-height:1.1; 
+    }
+    @media (max-width:480px){
+      .brand img{ height:34px; }
+      .brand h1{ font-size:18px; }
+    }
+
+    /* Layout de la tarjeta */
+    .container{ max-width:1100px; margin:20px auto; padding:0 16px; }
+    .card{ background:var(--blanco); border:1px solid var(--gris2); border-radius:14px; box-shadow:0 4px 16px rgba(2,6,23,.06); overflow:hidden; }
+    .card-header{ padding:16px; border-bottom:1px solid var(--gris2); display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .input{ flex:1 1 260px; display:flex; align-items:center; gap:8px; border:1px solid var(--gris2); border-radius:10px; padding:10px 12px; background:var(--blanco); }
+    .input input{ width:100%; border:none; outline:none; font-size:14px; }
+    .btn{ appearance:none; border:none; background:var(--amarillo); color:#111827; padding:10px 14px; font-weight:600; border-radius:10px; cursor:pointer; }
+    .btn:hover{ background:#facc15; }
+
+    /* Tabla */
+    .status{ padding:14px 16px; font-size:14px; color:#334155; }
+    table{ width:100%; border-collapse:collapse; }
+    thead{ background:#f8fafc; position:sticky; top:0; z-index:1; }
+    th, td{ padding:10px 12px; border-bottom:1px solid var(--gris2); text-align:left; font-size:14px; }
+    tbody tr:hover{ background:#f9fafb; }
+    .table-wrap{ overflow:auto; max-height:70vh; }
+    .empty{ padding:28px; text-align:center; color:#64748b; }
+  </style>
+
+  <!-- PapaParse para leer Google Sheets CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <!-- ✅ HEADER con logo (servido desde /public) -->
+  <header>
+    <div class="brand">
+      <img src="/mir-logo.png" alt="MIR - Maura Multiservices" />
+      <h1>MIR | Rastreo de Envíos</h1>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div class="card-header">
+        <div class="input" style="flex:1 1 200px;">
+          <input id="exactSearch" placeholder="Código exacto de rastreo" />
+        </div>
+        <button id="exactBtn" class="btn">Buscar</button>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <div class="table-wrap" id="tableWrap" style="display:none;">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty" class="empty" style="display:none;">No se encontró información para ese número de rastreo.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 📊 URL pública del CSV de Google Sheets
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKS7bgz66MT4L_jt8-I1cxgkJaJYwRgYRkQS2IBNvG0O8MJOETF2HBeTEd0VQE4Lu7GsTQBMeahzFB/pub?output=csv';
+
+    // 🔸 Elementos
+    const $ = (id) => document.getElementById(id);
+    const exactBtn = $('exactBtn');
+    const exactSearchEl = $('exactSearch');
+    const theadEl = $('thead');
+    const tbodyEl = $('tbody');
+    const tableWrapEl = $('tableWrap');
+    const emptyEl = $('empty');
+    const statusEl = $('status');
+    let headers = [];
+
+    // 📢 Estado
+    function setStatus(msg, ok=false){
+      statusEl.textContent = msg;
+      statusEl.style.display = msg ? 'block' : 'none';
+      statusEl.style.color = ok ? '#166534' : '#334155';
+    }
+
+    // 🧾 Render tabla
+    function renderTable(data){
+      theadEl.innerHTML = '';
+      tbodyEl.innerHTML = '';
+      if (!data || !data.length){
+        tableWrapEl.style.display = 'block';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+
+      // Header
+      const trHead = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        trHead.appendChild(th);
+      });
+      theadEl.appendChild(trHead);
+
+      // Body (solo 1 resultado)
+      const tr = document.createElement('tr');
+      headers.forEach(h => {
+        const td = document.createElement('td');
+        td.textContent = data[0][h] ?? '';
+        tr.appendChild(td);
+      });
+      tbodyEl.appendChild(tr);
+      tableWrapEl.style.display = 'block';
+    }
+
+    // 🔎 Buscar tracking exacto
+    function searchTracking(){
+      const code = exactSearchEl.value.trim().toLowerCase();
+      if (!code){
+        setStatus('Por favor ingrese un número de rastreo');
+        tableWrapEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        return;
+      }
+
+      setStatus('Buscando...');
+      Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          const rows = res.data || [];
+          headers = res.meta?.fields || (rows[0] ? Object.keys(rows[0]) : []);
+          const result = rows.filter(r =>
+            headers.some(h => String(r[h] ?? '').toLowerCase() === code)
+          );
+          renderTable(result);
+          setStatus(result.length ? '✅ Resultado encontrado' : '❌ No se encontró información', !!result.length);
+        },
+        error: () => {
+          setStatus('Error al cargar la hoja.');
+        }
+      });
+    }
+
+    // 🧭 Eventos
+    exactBtn.addEventListener('click', searchTracking);
+    exactSearchEl.addEventListener('keydown', (e) => { if(e.key==='Enter') searchTracking(); });
+  </script>
+</body>
+</html>
